@@ -13,22 +13,18 @@ const activitySchema = z.object({
   staffCount: z.number().int().optional(),
   dialogueCount: z.number().int(),
   memo: z.string().optional(),
-  results: z.array(z.object({
-    goalId: z.string(),
-    resultCount: z.number().int(),
-  })).optional(),
+  results: z
+    .array(
+      z.object({
+        goalId: z.string(),
+        resultCount: z.number().int(),
+      })
+    )
+    .optional(),
 })
 
-type RouteParams = {
-  params: {
-    id: string
-  }
-}
-
 // GET /api/activities/:id
-
-export async function GET(req: NextRequest, { params }: RouteParams) {
-  const activityId = params.id;
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
@@ -50,40 +46,30 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     })
 
     if (!activity) {
-      return NextResponse.json(
-        { error: "活動記録が見つかりません" },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: "活動記録が見つかりません" }, { status: 404 })
     }
 
     return NextResponse.json(activity)
   } catch (error) {
     console.error("Activity GET error:", error)
-    return NextResponse.json(
-      { error: "活動記録の取得に失敗しました" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "活動記録の取得に失敗しました" }, { status: 500 })
   }
 }
 
 // PUT /api/activities/:id
-export async function PUT(req: NextRequest, { params }: RouteParams) {
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 })
     }
 
-    // Check ownership
     const existing = await prisma.activity.findUnique({
       where: { id: params.id, userId: session.user.id },
     })
 
     if (!existing) {
-      return NextResponse.json(
-        { error: "活動記録が見つかりません" },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: "活動記録が見つかりません" }, { status: 404 })
     }
 
     const body = await req.json()
@@ -134,15 +120,12 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     }
 
     console.error("Activity PUT error:", error)
-    return NextResponse.json(
-      { error: "活動記録の更新に失敗しました" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "活動記録の更新に失敗しました" }, { status: 500 })
   }
 }
 
 // DELETE /api/activities/:id
-export async function DELETE(req: NextRequest, { params }: RouteParams) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
@@ -154,10 +137,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     })
 
     if (!existing) {
-      return NextResponse.json(
-        { error: "活動記録が見つかりません" },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: "活動記録が見つかりません" }, { status: 404 })
     }
 
     await prisma.activity.delete({
@@ -167,9 +147,6 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ message: "削除しました" })
   } catch (error) {
     console.error("Activity DELETE error:", error)
-    return NextResponse.json(
-      { error: "活動記録の削除に失敗しました" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "活動記録の削除に失敗しました" }, { status: 500 })
   }
 }
