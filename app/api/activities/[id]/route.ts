@@ -26,7 +26,9 @@ type RouteParams = {
 }
 
 // GET /api/activities/:id
+
 export async function GET(req: NextRequest, { params }: RouteParams) {
+  const activityId = params.id;
   try {
     const session = await auth()
     if (!session?.user?.id) {
