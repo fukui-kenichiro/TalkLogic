@@ -22,10 +22,8 @@ const activitySchema = z.object({
 })
 
 // GET /api/activities/:id
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } })
+ {
   try {
     const session = await auth()
     if (!session?.user?.id) {
@@ -58,10 +56,8 @@ export async function GET(
 }
 
 // PUT /api/activities/:id
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(req: NextRequest, { params }: { params: { id: string } })
+ {
   try {
     const session = await auth()
     if (!session?.user?.id) {
@@ -128,10 +124,7 @@ export async function PUT(
 }
 
 // DELETE /api/activities/:id
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
