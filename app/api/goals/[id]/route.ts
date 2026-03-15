@@ -12,21 +12,23 @@ const goalSchema = z.object({
 })
 
 type RouteParams = {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 // PUT /api/goals/:id
 export async function PUT(req: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params
+
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 })
     }
 
     const existing = await prisma.goal.findUnique({
-      where: { id: params.id, userId: session.user.id },
+      where: { id: id, userId: session.user.id },
     })
 
     if (!existing) {
@@ -40,7 +42,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     const validated = goalSchema.parse(body)
 
     const goal = await prisma.goal.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         goalName: validated.goalName,
         outcomeName: validated.outcomeName,
@@ -60,6 +62,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     }
 
     console.error("Goal PUT error:", error)
+
     return NextResponse.json(
       { error: "成果指標の更新に失敗しました" },
       { status: 500 }
@@ -70,13 +73,15 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 // DELETE /api/goals/:id
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params
+
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 })
     }
 
     const existing = await prisma.goal.findUnique({
-      where: { id: params.id, userId: session.user.id },
+      where: { id: id, userId: session.user.id },
     })
 
     if (!existing) {
@@ -87,12 +92,13 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     }
 
     await prisma.goal.delete({
-      where: { id: params.id },
+      where: { id: id },
     })
 
     return NextResponse.json({ message: "削除しました" })
   } catch (error) {
     console.error("Goal DELETE error:", error)
+
     return NextResponse.json(
       { error: "成果指標の削除に失敗しました" },
       { status: 500 }
