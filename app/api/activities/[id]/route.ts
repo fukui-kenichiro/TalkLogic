@@ -24,8 +24,13 @@ const activitySchema = z.object({
 })
 
 // GET /api/activities/:id
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params
+
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 })
@@ -33,7 +38,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const activity = await prisma.activity.findUnique({
       where: {
-        id: params.id,
+        id: id,
         userId: session.user.id,
       },
       include: {
@@ -57,15 +62,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // PUT /api/activities/:id
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params
+
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 })
     }
 
     const existing = await prisma.activity.findUnique({
-      where: { id: params.id, userId: session.user.id },
+      where: { id: id, userId: session.user.id },
     })
 
     if (!existing) {
@@ -75,13 +85,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const body = await req.json()
     const validated = activitySchema.parse(body)
 
-    // Delete existing results and recreate
     await prisma.activityResult.deleteMany({
-      where: { activityId: params.id },
+      where: { activityId: id },
     })
 
     const activity = await prisma.activity.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         activityDate: new Date(validated.activityDate),
         locationName: validated.locationName,
@@ -125,15 +134,20 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 // DELETE /api/activities/:id
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params
+
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 })
     }
 
     const existing = await prisma.activity.findUnique({
-      where: { id: params.id, userId: session.user.id },
+      where: { id: id, userId: session.user.id },
     })
 
     if (!existing) {
@@ -141,7 +155,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
 
     await prisma.activity.delete({
-      where: { id: params.id },
+      where: { id: id },
     })
 
     return NextResponse.json({ message: "削除しました" })
