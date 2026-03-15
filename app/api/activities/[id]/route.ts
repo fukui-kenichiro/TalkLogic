@@ -13,24 +13,20 @@ const activitySchema = z.object({
   staffCount: z.number().int().optional(),
   dialogueCount: z.number().int(),
   memo: z.string().optional(),
-  results: z
-    .array(
-      z.object({
-        goalId: z.string(),
-        resultCount: z.number().int(),
-      })
-    )
-    .optional(),
+  results: z.array(
+    z.object({
+      goalId: z.string(),
+      resultCount: z.number().int(),
+    })
+  ).optional(),
 })
 
 // GET /api/activities/:id
 export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  _req: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
-
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 })
@@ -38,7 +34,7 @@ export async function GET(
 
     const activity = await prisma.activity.findUnique({
       where: {
-        id: id,
+        id: params.id,
         userId: session.user.id,
       },
       include: {
@@ -64,18 +60,16 @@ export async function GET(
 // PUT /api/activities/:id
 export async function PUT(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
-
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 })
     }
 
     const existing = await prisma.activity.findUnique({
-      where: { id: id, userId: session.user.id },
+      where: { id: params.id, userId: session.user.id },
     })
 
     if (!existing) {
@@ -86,11 +80,11 @@ export async function PUT(
     const validated = activitySchema.parse(body)
 
     await prisma.activityResult.deleteMany({
-      where: { activityId: id },
+      where: { activityId: params.id },
     })
 
     const activity = await prisma.activity.update({
-      where: { id: id },
+      where: { id: params.id },
       data: {
         activityDate: new Date(validated.activityDate),
         locationName: validated.locationName,
@@ -136,18 +130,16 @@ export async function PUT(
 // DELETE /api/activities/:id
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
-
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 })
     }
 
     const existing = await prisma.activity.findUnique({
-      where: { id: id, userId: session.user.id },
+      where: { id: params.id, userId: session.user.id },
     })
 
     if (!existing) {
@@ -155,7 +147,7 @@ export async function DELETE(
     }
 
     await prisma.activity.delete({
-      where: { id: id },
+      where: { id: params.id },
     })
 
     return NextResponse.json({ message: "削除しました" })
