@@ -54,15 +54,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     error: "/login",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
-        token.id = user.id
+        token.id = user.id as string
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const dbUser = await (prisma.user.findUnique as any)({
+          where: { id: user.id as string },
+          select: { onboardingCompleted: true },
+        })
+        token.onboardingCompleted = (dbUser?.onboardingCompleted as boolean) ?? false
+      }
+      if (trigger === "update") {
+        const s = session as { onboardingCompleted?: boolean } | null
+        if (s?.onboardingCompleted !== undefined) {
+          token.onboardingCompleted = s.onboardingCompleted
+        }
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string
+        session.user.id = token.id
+        session.user.onboardingCompleted = token.onboardingCompleted
       }
       return session
     },

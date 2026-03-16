@@ -140,7 +140,7 @@ export default function GoalsPage() {
                 <Input
                   id="goalName"
                   required
-                  placeholder="例: 同盟員獲得"
+                  placeholder="例: 同盟員拡大"
                   value={formData.goalName}
                   onChange={(e) =>
                     setFormData({ ...formData, goalName: e.target.value })
@@ -156,7 +156,7 @@ export default function GoalsPage() {
                 <Input
                   id="outcomeName"
                   required
-                  placeholder="例: 加入数"
+                  placeholder="例: 加盟数"
                   value={formData.outcomeName}
                   onChange={(e) =>
                     setFormData({ ...formData, outcomeName: e.target.value })
