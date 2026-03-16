@@ -9,12 +9,13 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MapPin, Loader2, Navigation } from "lucide-react"
+import type { Goal } from "@prisma/client"
 
 export default function NewActivityPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [gettingLocation, setGettingLocation] = useState(false)
-  const [goals, setGoals] = useState<any[]>([])
+  const [goals, setGoals] = useState<Goal[]>([])
   const [error, setError] = useState("")
 
   const [formData, setFormData] = useState({

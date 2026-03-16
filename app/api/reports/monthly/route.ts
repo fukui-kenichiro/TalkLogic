@@ -3,6 +3,26 @@ import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { startOfMonth, endOfMonth, format, eachDayOfInterval } from "date-fns"
 
+type LocationEntry = {
+  locationName: string
+  latitude: number | null
+  longitude: number | null
+  count: number
+  dialogueCount: number
+}
+
+type WeatherEntry = {
+  weather: string
+  count: number
+  dialogueCount: number
+}
+
+type DayOfWeekEntry = {
+  dayOfWeek: string
+  count: number
+  dialogueCount: number
+}
+
 export async function GET(req: NextRequest) {
   try {
     const session = await auth()
@@ -73,7 +93,7 @@ export async function GET(req: NextRequest) {
     })
 
     // Location aggregation
-    const locationData = activities.reduce((acc: any[], activity) => {
+    const locationData = activities.reduce((acc: LocationEntry[], activity) => {
       const existing = acc.find((l) => l.locationName === activity.locationName)
       if (existing) {
         existing.count++
@@ -91,7 +111,7 @@ export async function GET(req: NextRequest) {
     }, [])
 
     // Weather analysis
-    const weatherData = activities.reduce((acc: any[], activity) => {
+    const weatherData = activities.reduce((acc: WeatherEntry[], activity) => {
       if (!activity.weather) return acc
       const existing = acc.find((w) => w.weather === activity.weather)
       if (existing) {
@@ -108,7 +128,7 @@ export async function GET(req: NextRequest) {
     }, [])
 
     // Day of week analysis
-    const dayOfWeekData = activities.reduce((acc: any[], activity) => {
+    const dayOfWeekData = activities.reduce((acc: DayOfWeekEntry[], activity) => {
       const dayOfWeek = new Date(activity.activityDate).getDay()
       const dayNames = ["日", "月", "火", "水", "木", "金", "土"]
       const dayName = dayNames[dayOfWeek]

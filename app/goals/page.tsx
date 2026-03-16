@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Plus, Trash2, Loader2 } from "lucide-react"
+import type { Goal } from "@prisma/client"
 
 export default function GoalsPage() {
-  const [goals, setGoals] = useState<any[]>([])
+  const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 import { z } from "zod"
 
 const activitySchema = z.object({
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
     const startDate = searchParams.get("startDate")
     const endDate = searchParams.get("endDate")
 
-    const where: any = {
+    const where: Prisma.ActivityWhereInput = {
       userId: session.user.id,
     }
 
