@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
@@ -53,6 +53,63 @@ export default function LoginPage() {
   }
 
   return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {registered && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+          登録が完了しました。ログインしてください。
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <Label htmlFor="username">ユーザー名</Label>
+        <Input
+          id="username"
+          type="text"
+          required
+          value={formData.username}
+          onChange={(e) =>
+            setFormData({ ...formData, username: e.target.value })
+          }
+          placeholder="username"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="password">パスワード</Label>
+        <Input
+          id="password"
+          type="password"
+          required
+          value={formData.password}
+          onChange={(e) =>
+            setFormData({ ...formData, password: e.target.value })
+          }
+          placeholder="password"
+        />
+      </div>
+
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? "ログイン中..." : "ログイン"}
+      </Button>
+
+      <div className="text-center text-sm text-muted-foreground">
+        アカウントをお持ちでないですか？{" "}
+        <Link href="/register" className="text-primary hover:underline">
+          新規登録
+        </Link>
+      </div>
+    </form>
+  )
+}
+
+export default function LoginPage() {
+  return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
@@ -62,58 +119,9 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {registered && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-                登録が完了しました。ログインしてください。
-              </div>
-            )}
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                {error}
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="username">ユーザー名</Label>
-              <Input
-                id="username"
-                type="text"
-                required
-                value={formData.username}
-                onChange={(e) =>
-                  setFormData({ ...formData, username: e.target.value })
-                }
-                placeholder="username"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">パスワード</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-                placeholder="password"
-              />
-            </div>
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "ログイン中..." : "ログイン"}
-            </Button>
-
-            <div className="text-center text-sm text-muted-foreground">
-              アカウントをお持ちでないですか？{" "}
-              <Link href="/register" className="text-primary hover:underline">
-                新規登録
-              </Link>
-            </div>
-          </form>
+          <Suspense fallback={<div className="text-center py-4">読み込み中...</div>}>
+            <LoginForm />
+          </Suspense>
         </CardContent>
       </Card>
     </div>

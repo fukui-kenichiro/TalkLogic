@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -29,11 +29,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(false)
 
-  useEffect(() => {
-    fetchReport()
-  }, [year, month])
-
-  const fetchReport = async () => {
+  const fetchReport = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch(`/api/reports/monthly?year=${year}&month=${month}`)
@@ -46,7 +42,11 @@ export default function ReportsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [year, month])
+
+  useEffect(() => {
+    fetchReport()
+  }, [fetchReport])
 
   const runAIAnalysis = async () => {
     if (!reportData) return
