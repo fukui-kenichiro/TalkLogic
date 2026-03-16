@@ -57,7 +57,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id as string
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const dbUser = await (prisma.user.findUnique as any)({
           where: { id: user.id as string },
           select: { onboardingCompleted: true },
@@ -74,8 +73,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id
-        session.user.onboardingCompleted = token.onboardingCompleted
+        session.user.id = token.id as string
+        session.user.onboardingCompleted = (token.onboardingCompleted as boolean) ?? false
       }
       return session
     },

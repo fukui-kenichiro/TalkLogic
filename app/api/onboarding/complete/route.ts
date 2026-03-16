@@ -38,7 +38,6 @@ export async function POST(req: NextRequest) {
     }
 
     // オンボーディング完了フラグを更新
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (prisma.user.update as any)({
       where: { id: session.user.id },
       data: { onboardingCompleted: true },
