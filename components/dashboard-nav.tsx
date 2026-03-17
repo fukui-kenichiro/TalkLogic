@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
-import { LayoutDashboard, MapPin, BarChart3, Target, LogOut, Menu } from "lucide-react"
+import { LayoutDashboard, MapPin, BarChart3, Target, LogOut, Menu, UserCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
@@ -13,6 +13,7 @@ const navigation = [
   { name: "活動記録", href: "/activities", icon: MapPin },
   { name: "月次レポート", href: "/reports", icon: BarChart3 },
   { name: "成果指標設定", href: "/goals", icon: Target },
+  { name: "マイページ", href: "/mypage", icon: UserCircle },
 ]
 
 export function DashboardNav() {

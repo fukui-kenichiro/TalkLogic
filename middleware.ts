@@ -7,6 +7,7 @@ const protectedPaths = [
   "/reports",
   "/goals",
   "/profile",
+  "/mypage",
   "/onboarding",
 ]
 
@@ -46,6 +47,8 @@ export const config = {
     "/reports/:path*",
     "/goals/:path*",
     "/profile/:path*",
+    "/mypage/:path*",
+    "/mypage",
     "/onboarding",
     "/onboarding/:path*",
   ],
