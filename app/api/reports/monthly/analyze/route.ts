@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
-import Anthropic from "@anthropic-ai/sdk"
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || "",
-})
+import prisma from "@/lib/prisma"
+import {
+  callAI,
+  checkIsPaid,
+  currentYearMonth,
+  FREE_AI_LIMIT,
+  AI_MODELS,
+  type AiModelKey,
+} from "@/lib/ai"
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,21 +17,50 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 })
     }
 
-    if (!process.env.ANTHROPIC_API_KEY) {
+    // プラン・利用状況を並行取得
+    const [billing, user] = await Promise.all([
+      prisma.billing.findUnique({
+        where: { userId: session.user.id },
+        select: { plan: true, status: true, currentPeriodEnd: true },
+      }),
+      (prisma.user.findUnique as any)({
+        where: { id: session.user.id },
+        select: { preferredAiModel: true },
+      }),
+    ])
+
+    const isPaid = checkIsPaid(billing)
+    const yearMonth = currentYearMonth()
+
+    // AI利用回数チェック（無料プランのみ）
+    const usageLog = await (prisma as any).aiUsageLog.findUnique({
+      where: { userId_yearMonth: { userId: session.user.id, yearMonth } },
+    })
+    const usedBefore: number = usageLog?.count ?? 0
+
+    if (!isPaid && usedBefore >= FREE_AI_LIMIT) {
       return NextResponse.json(
-        { error: "AI分析機能は設定されていません" },
-        { status: 503 }
+        {
+          error: `今月のAI分析回数（${FREE_AI_LIMIT}回）の上限に達しました。スタンダードプランにアップグレードすると無制限でご利用いただけます。`,
+          limitReached: true,
+        },
+        { status: 429 }
       )
+    }
+
+    // モデル決定（無料プランは haiku 固定）
+    let modelKey: AiModelKey = "claude-haiku"
+    if (isPaid) {
+      const preferred = user?.preferredAiModel as string | undefined
+      if (preferred && AI_MODELS[preferred as AiModelKey]) {
+        modelKey = preferred as AiModelKey
+      }
     }
 
     const body = await req.json()
     const { reportData } = body
-
     if (!reportData) {
-      return NextResponse.json(
-        { error: "レポートデータが必要です" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "レポートデータが必要です" }, { status: 400 })
     }
 
     const prompt = `
@@ -59,28 +92,30 @@ ${JSON.stringify(reportData, null, 2)}
 分析は具体的で実行可能な内容にし、データの裏付けを明示してください。
 `
 
-    const message = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20241022",
-      max_tokens: 2000,
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
+    const analysis = await callAI(modelKey, prompt)
+
+    // 利用回数をインクリメント
+    await (prisma as any).aiUsageLog.upsert({
+      where: { userId_yearMonth: { userId: session.user.id, yearMonth } },
+      create: { userId: session.user.id, yearMonth, count: 1 },
+      update: { count: { increment: 1 } },
     })
 
-    const analysis = message.content[0].type === "text" ? message.content[0].text : ""
+    const usedAfter = usedBefore + 1
 
     return NextResponse.json({
       analysis,
       generatedAt: new Date().toISOString(),
+      modelKey,
+      modelLabel: AI_MODELS[modelKey].label,
+      usage: {
+        used: usedAfter,
+        limit: isPaid ? null : FREE_AI_LIMIT,
+        remaining: isPaid ? null : Math.max(0, FREE_AI_LIMIT - usedAfter),
+      },
     })
   } catch (error) {
     console.error("AI analysis error:", error)
-    return NextResponse.json(
-      { error: "AI分析の実行に失敗しました" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "AI分析の実行に失敗しました" }, { status: 500 })
   }
 }

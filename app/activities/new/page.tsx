@@ -8,8 +8,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { MapPin, Loader2, Navigation } from "lucide-react"
+import { MapPin, Loader2, Navigation, AlertCircle, Zap } from "lucide-react"
 import type { Goal } from "@prisma/client"
+import Link from "next/link"
+
+type ActivityUsage = {
+  used: number | null
+  limit: number | null
+  remaining: number | null
+  isPaid: boolean
+}
 
 export default function NewActivityPage() {
   const router = useRouter()
@@ -17,6 +25,7 @@ export default function NewActivityPage() {
   const [gettingLocation, setGettingLocation] = useState(false)
   const [goals, setGoals] = useState<Goal[]>([])
   const [error, setError] = useState("")
+  const [usage, setUsage] = useState<ActivityUsage | null>(null)
 
   const [formData, setFormData] = useState({
     activityDate: new Date().toISOString().slice(0, 16),
@@ -34,6 +43,10 @@ export default function NewActivityPage() {
 
   useEffect(() => {
     fetchGoals()
+    fetch("/api/activities/usage")
+      .then((r) => r.json())
+      .then(setUsage)
+      .catch(() => null)
   }, [])
 
   const fetchGoals = async () => {
@@ -128,12 +141,40 @@ export default function NewActivityPage() {
     }
   }
 
+  const isAtLimit = usage && !usage.isPaid && (usage.remaining ?? 1) <= 0
+  const isNearLimit = usage && !usage.isPaid && !isAtLimit && (usage.remaining ?? 99) <= 2
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <h1 className="text-3xl font-bold">新規活動記録</h1>
         <p className="text-muted-foreground mt-1">街頭活動の詳細を記録します</p>
       </div>
+
+      {/* 利用状況バナー（無料プランのみ） */}
+      {usage && !usage.isPaid && (
+        isAtLimit ? (
+          <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+            <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold">今月の活動登録数（{usage.limit}件）の上限に達しました</p>
+              <p className="mt-0.5">
+                <Link href="/mypage/billing" className="underline font-medium">
+                  スタンダードプランにアップグレード
+                </Link>
+                すると無制限でご利用いただけます。
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className={`flex items-center gap-2 text-sm px-4 py-2.5 rounded-lg ${
+            isNearLimit ? "bg-amber-50 border border-amber-200 text-amber-800" : "bg-blue-50 border border-blue-100 text-blue-700"
+          }`}>
+            <Zap className="h-4 w-4 flex-shrink-0" />
+            今月の登録: {usage.used} / {usage.limit} 件（残り {usage.remaining} 件）
+          </div>
+        )
+      )}
 
       <form onSubmit={handleSubmit}>
         <Card>
@@ -309,7 +350,7 @@ export default function NewActivityPage() {
 
             {/* Actions */}
             <div className="flex gap-3 pt-4">
-              <Button type="submit" disabled={loading} className="flex-1">
+              <Button type="submit" disabled={loading || !!isAtLimit} className="flex-1">
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

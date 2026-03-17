@@ -18,6 +18,7 @@ model User {
   password      String
   nickname              String?
   onboardingCompleted   Boolean   @default(false)
+  preferredAiModel      String    @default("claude-haiku")
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
@@ -26,6 +27,7 @@ model User {
   billing       Billing?
   accounts      Account[]
   sessions      Session[]
+  aiUsageLogs   AiUsageLog[]
 
   @@map("users")
 }
@@ -128,6 +130,21 @@ model ActivityResult {
   @@index([activityId])
   @@index([goalId])
   @@map("activity_results")
+}
+
+// AI分析利用ログ（月別）
+model AiUsageLog {
+  id        String   @id @default(cuid())
+  userId    String
+  yearMonth String   // "2026-03" 形式
+  count     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, yearMonth])
+  @@map("ai_usage_logs")
 }
 
 // 課金データ

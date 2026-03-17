@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
 import { z } from "zod"
+import { FREE_ACTIVITY_LIMIT, checkIsPaid, currentMonthRange } from "@/lib/ai"
 
 const activitySchema = z.object({
   activityDate: z.string().datetime(),
@@ -87,6 +88,27 @@ export async function POST(req: NextRequest) {
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 })
+    }
+
+    // 無料プランの月間登録数チェック
+    const billing = await prisma.billing.findUnique({
+      where: { userId: session.user.id },
+      select: { plan: true, status: true, currentPeriodEnd: true },
+    })
+    if (!checkIsPaid(billing)) {
+      const { start, end } = currentMonthRange()
+      const monthlyCount = await prisma.activity.count({
+        where: { userId: session.user.id, activityDate: { gte: start, lte: end } },
+      })
+      if (monthlyCount >= FREE_ACTIVITY_LIMIT) {
+        return NextResponse.json(
+          {
+            error: `今月の活動登録数（${FREE_ACTIVITY_LIMIT}件）の上限に達しました。スタンダードプランにアップグレードすると無制限でご利用いただけます。`,
+            limitReached: true,
+          },
+          { status: 429 }
+        )
+      }
     }
 
     const body = await req.json()
