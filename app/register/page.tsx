@@ -131,6 +131,12 @@ export default function RegisterPage() {
               既にアカウントをお持ちですか？{" "}
               <Link href="/login" className="text-primary hover:underline">
                 ログイン
+              </Link><br /><br />
+              <Link href="https://talk.logic.zi.cr/terms.html" className="text-primary hover:underline">
+                利用規約
+              </Link><br />
+              <Link href="https://talk.logic.zi.cr/" className="text-primary hover:underline">
+                TalkLogicについて
               </Link>
             </div>
           </form>
