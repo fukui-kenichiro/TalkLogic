@@ -19,6 +19,14 @@ export default function RootLayout({
     <html lang="ja">
       <body className={inter.className}>
         <Providers>{children}</Providers>
+        <br /><br />
+              　<Link href="https://talk.logic.zi.cr/terms.html" className="text-primary hover:underline">
+                利用規約
+              </Link>
+              <br /><br />
+              <Link href="https://talk.logic.zi.cr/tokusho.html" className="text-primary hover:underline">
+                特定商取引法に基づく表示
+              </Link>
       </body>
     </html>
   )
