@@ -51,3 +51,12 @@ export async function getOrder(orderId: string) {
   })
   return res.json()
 }
+
+// オーダーに紐づく Payment 一覧を取得（Payment Link 決済確認の最終手段）
+export async function getPaymentsByOrderId(orderId: string) {
+  const res = await fetch(
+    `${BASE_URL}/payments?order_id=${encodeURIComponent(orderId)}`,
+    { headers: headers() }
+  )
+  return res.json()
+}

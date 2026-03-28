@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { getPayment, getOrder } from "@/lib/square"
+import { getPayment, getPaymentsByOrderId, getOrder } from "@/lib/square"
 
 const MAX_RETRY = 4
 const PLAN_AMOUNT_JPY = 500
@@ -8,6 +8,7 @@ const PLAN_AMOUNT_JPY = 500
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url)
   const sessionId = searchParams.get("session") ?? ""
+  // Square がリダイレクト URL に付与するパラメータ（付かない場合もある）
   const transactionId = searchParams.get("transactionId") ?? ""
   const retry = parseInt(searchParams.get("retry") ?? "0", 10)
 
@@ -23,34 +24,56 @@ export async function GET(req: NextRequest) {
     return html(errorHtml("セッション情報が見つかりません"))
   }
 
+  // 既に処理済み（冪等性）
+  if (billing.plan === "standard" && billing.status === "active" && !billing.squareSessionId) {
+    return new NextResponse(successHtml(origin), {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    })
+  }
+
   let isPaid = false
 
-  // 確認方法1: transactionId（Payment ID）で直接確認
+  // ── 確認方法1: URL の transactionId で Payment を直接確認 ──────────────
   if (transactionId) {
     const res = await getPayment(transactionId)
-    const payment = res.payment
+    const p = res.payment
+    console.log("[payment-return] method1 payment:", JSON.stringify(p))
     if (
-      payment?.status === "COMPLETED" &&
-      (payment?.amount_money?.amount ?? 0) >= PLAN_AMOUNT_JPY
+      p &&
+      (p.status === "COMPLETED" || p.status === "APPROVED") &&
+      (p.amount_money?.amount ?? 0) >= PLAN_AMOUNT_JPY
     ) {
       isPaid = true
     }
   }
 
-  // 確認方法2 & 3: Order で確認
+  // ── 確認方法2: order_id で Payment 一覧を検索（最確実） ─────────────────
+  if (!isPaid && billing.squareOrderId) {
+    const res = await getPaymentsByOrderId(billing.squareOrderId)
+    console.log("[payment-return] method2 payments:", JSON.stringify(res.payments))
+    const payments: Array<{ status: string; amount_money?: { amount?: number } }> =
+      res.payments ?? []
+    isPaid = payments.some(
+      (p) =>
+        (p.status === "COMPLETED" || p.status === "APPROVED") &&
+        (p.amount_money?.amount ?? 0) >= PLAN_AMOUNT_JPY
+    )
+  }
+
+  // ── 確認方法3: Order の tenders で確認（フォールバック） ──────────────────
   if (!isPaid && billing.squareOrderId) {
     const res = await getOrder(billing.squareOrderId)
     const order = res.order
-    if (order?.state === "COMPLETED") {
-      isPaid = true
-    }
-    if (!isPaid && Array.isArray(order?.tenders)) {
+    console.log("[payment-return] method3 order state:", order?.state, "tenders:", JSON.stringify(order?.tenders))
+    // order.state は Payment Link では OPEN のままが正常なので確認しない
+    if (Array.isArray(order?.tenders)) {
       for (const tender of order.tenders as Array<Record<string, unknown>>) {
-        const tenderStatus = (tender.card_details as Record<string, string> | undefined)?.status
+        const cardStatus =
+          (tender.card_details as Record<string, string> | undefined)?.status
         const tenderAmount =
           (tender.amount_money as { amount?: number } | undefined)?.amount ?? 0
         if (
-          (tenderStatus === "CAPTURED" || tenderStatus === "AUTHORIZED") &&
+          (cardStatus === "CAPTURED" || cardStatus === "AUTHORIZED") &&
           tenderAmount >= PLAN_AMOUNT_JPY
         ) {
           isPaid = true
@@ -64,11 +87,10 @@ export async function GET(req: NextRequest) {
     if (retry < MAX_RETRY) {
       const nextUrl = new URL(req.url)
       nextUrl.searchParams.set("retry", String(retry + 1))
-      const nextUrlStr = nextUrl.toString()
       return new NextResponse(loadingHtml(), {
         headers: {
           "Content-Type": "text/html; charset=utf-8",
-          Refresh: `5; URL=${nextUrlStr}`,
+          Refresh: `5; URL=${nextUrl.toString()}`,
         },
       })
     }
@@ -79,7 +101,7 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  // DB 更新（未処理の場合のみ）
+  // ── DB 更新（未処理の場合のみ） ──────────────────────────────────────────
   if (billing.plan !== "standard" || billing.status !== "active") {
     const periodEnd = new Date()
     periodEnd.setMonth(periodEnd.getMonth() + 1)

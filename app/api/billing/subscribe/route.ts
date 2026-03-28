@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { createPaymentLink } from "@/lib/square"
 
-export async function POST(_req: NextRequest) {
+export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) {
     return NextResponse.json({ error: "認証が必要です" }, { status: 401 })
@@ -23,8 +23,10 @@ export async function POST(_req: NextRequest) {
 
   const sessionId = randomBytes(24).toString("hex")
   const idempotencyKey = randomBytes(16).toString("hex")
-  const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
-  const redirectUrl = `${baseUrl}/api/billing/payment-return?session=${sessionId}`
+
+  // NEXTAUTH_URL よりリクエストの origin を優先（Vercel デプロイ環境で確実）
+  const origin = new URL(req.url).origin
+  const redirectUrl = `${origin}/api/billing/payment-return?session=${sessionId}`
 
   const result = await createPaymentLink({
     idempotencyKey,
@@ -34,9 +36,10 @@ export async function POST(_req: NextRequest) {
   })
 
   if (result.errors) {
-    console.error("Square createPaymentLink error:", result.errors)
+    const detail = JSON.stringify(result.errors)
+    console.error("Square createPaymentLink error:", detail)
     return NextResponse.json(
-      { error: "決済リンクの作成に失敗しました" },
+      { error: `決済リンクの作成に失敗しました: ${detail}` },
       { status: 500 }
     )
   }
