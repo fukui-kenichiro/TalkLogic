@@ -40,12 +40,17 @@ export default function NewActivityPage() {
   })
 
   const [results, setResults] = useState<Record<string, string>>({})
+  const [dialogueLabel, setDialogueLabel] = useState("対話人数")
 
   useEffect(() => {
     fetchGoals()
     fetch("/api/activities/usage")
       .then((r) => r.json())
       .then(setUsage)
+      .catch(() => null)
+    fetch("/api/settings/dialogue-label")
+      .then((r) => r.json())
+      .then((d) => setDialogueLabel(d.label ?? "対話人数"))
       .catch(() => null)
   }, [])
 
@@ -293,7 +298,7 @@ export default function NewActivityPage() {
 
             {/* Dialogue Count */}
             <div className="space-y-2">
-              <Label htmlFor="dialogueCount">対話人数 *</Label>
+              <Label htmlFor="dialogueCount">{dialogueLabel} *</Label>
               <Input
                 id="dialogueCount"
                 type="number"

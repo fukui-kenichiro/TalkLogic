@@ -19,6 +19,7 @@ model User {
   nickname              String?
   onboardingCompleted   Boolean   @default(false)
   preferredAiModel      String    @default("claude-haiku")
+  dialogueCountLabel    String    @default("対話人数")
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 

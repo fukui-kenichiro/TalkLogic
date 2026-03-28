@@ -59,9 +59,14 @@ export default function ActivityDetailPage() {
   const [activity, setActivity] = useState<Activity | null>(null)
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
+  const [dialogueLabel, setDialogueLabel] = useState("対話人数")
 
   useEffect(() => {
     fetchActivity()
+    fetch("/api/settings/dialogue-label")
+      .then((r) => r.json())
+      .then((d) => setDialogueLabel(d.label ?? "対話人数"))
+      .catch(() => null)
   }, [id])
 
   const fetchActivity = async () => {
@@ -188,7 +193,7 @@ export default function ActivityDetailPage() {
           )}
           <InfoItem
             icon={<MessageCircle className="h-4 w-4" />}
-            label="対話人数"
+            label={dialogueLabel}
             value={`${activity.dialogueCount}人`}
           />
         </CardContent>

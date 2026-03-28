@@ -35,6 +35,7 @@ export default function ReportsPage() {
   const [year, setYear] = useState(new Date().getFullYear())
   const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [reportData, setReportData] = useState<any>(null)
+  const [dialogueLabel, setDialogueLabel] = useState("対話人数")
   const [aiAnalysis, setAiAnalysis] = useState<string>("")
   const [aiModelUsed, setAiModelUsed] = useState<string>("")
   const [loading, setLoading] = useState(true)
@@ -70,6 +71,12 @@ export default function ReportsPage() {
 
   useEffect(() => { fetchReport() }, [fetchReport])
   useEffect(() => { fetchAiUsage() }, [fetchAiUsage])
+  useEffect(() => {
+    fetch("/api/settings/dialogue-label")
+      .then((r) => r.json())
+      .then((d) => setDialogueLabel(d.label ?? "対話人数"))
+      .catch(() => null)
+  }, [])
 
   const handleModelChange = async (model: AiModelKey) => {
     setSelectedModel(model)
@@ -185,7 +192,7 @@ export default function ReportsPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">対話人数</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{dialogueLabel}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{reportData.summary.totalDialogues}人</p>
@@ -226,7 +233,7 @@ export default function ReportsPage() {
                 <YAxis />
                 <Tooltip labelFormatter={(val) => `${month}/${val.slice(8)}日`} />
                 <Legend />
-                <Line type="monotone" dataKey="dialogueCount" stroke="#3b82f6" name="対話人数" strokeWidth={2} />
+                <Line type="monotone" dataKey="dialogueCount" stroke="#3b82f6" name={dialogueLabel} strokeWidth={2} />
                 <Line type="monotone" dataKey="activityCount" stroke="#10b981" name="活動回数" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
@@ -292,7 +299,7 @@ export default function ReportsPage() {
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="count" fill="#3b82f6" name="活動回数" />
-                  <Bar dataKey="dialogueCount" fill="#10b981" name="対話人数" />
+                  <Bar dataKey="dialogueCount" fill="#10b981" name={dialogueLabel} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

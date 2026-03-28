@@ -34,9 +34,14 @@ type DashboardData = {
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [dialogueLabel, setDialogueLabel] = useState("対話人数")
 
   useEffect(() => {
     fetchDashboardData()
+    fetch("/api/settings/dialogue-label")
+      .then((r) => r.json())
+      .then((d) => setDialogueLabel(d.label ?? "対話人数"))
+      .catch(() => null)
   }, [])
 
   const fetchDashboardData = async () => {
@@ -132,7 +137,7 @@ export default function DashboardPage() {
           icon={Activity}
         />
         <StatCard
-          title="対話人数"
+          title={dialogueLabel}
           value={`${data.thisMonthStats.totalDialogues}人`}
           change={data.changes.totalDialogues}
           icon={MessageCircle}

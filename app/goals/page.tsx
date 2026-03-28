@@ -21,8 +21,17 @@ export default function GoalsPage() {
     colorCode: "#3b82f6",
   })
 
+  const [dialogueLabel, setDialogueLabel] = useState("対話人数")
+  const [dialogueLabelEditing, setDialogueLabelEditing] = useState(false)
+  const [dialogueLabelSaving, setDialogueLabelSaving] = useState(false)
+  const [dialogueLabelError, setDialogueLabelError] = useState("")
+
   useEffect(() => {
     fetchGoals()
+    fetch("/api/settings/dialogue-label")
+      .then((r) => r.json())
+      .then((d) => setDialogueLabel(d.label ?? "対話人数"))
+      .catch(() => null)
   }, [])
 
   const fetchGoals = async () => {
@@ -74,6 +83,32 @@ export default function GoalsPage() {
     }
   }
 
+  const handleDialogueLabelSave = async () => {
+    if (!dialogueLabel.trim()) {
+      setDialogueLabelError("ラベル名を入力してください")
+      return
+    }
+    setDialogueLabelSaving(true)
+    setDialogueLabelError("")
+    try {
+      const res = await fetch("/api/settings/dialogue-label", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label: dialogueLabel.trim() }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        setDialogueLabelError(data.error || "保存に失敗しました")
+        return
+      }
+      setDialogueLabelEditing(false)
+    } catch {
+      setDialogueLabelError("保存処理中にエラーが発生しました")
+    } finally {
+      setDialogueLabelSaving(false)
+    }
+  }
+
   const handleDelete = async (id: string) => {
     if (!confirm("この成果指標を削除してもよろしいですか？")) {
       return
@@ -120,6 +155,58 @@ export default function GoalsPage() {
           </Button>
         )}
       </div>
+
+      {/* Dialogue Count Label Setting */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">活動量カウント名</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            「新規活動記録」の必須項目（デフォルト: 対話人数）の名前を変更できます。
+          </p>
+          {dialogueLabelEditing ? (
+            <div className="space-y-2">
+              {dialogueLabelError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded text-sm">
+                  {dialogueLabelError}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Input
+                  value={dialogueLabel}
+                  onChange={(e) => setDialogueLabel(e.target.value)}
+                  maxLength={20}
+                  placeholder="例: 用意したチラシ枚数"
+                  className="flex-1"
+                />
+                <Button onClick={handleDialogueLabelSave} disabled={dialogueLabelSaving}>
+                  {dialogueLabelSaving ? (
+                    <><Loader2 className="h-4 w-4 mr-1 animate-spin" />保存中...</>
+                  ) : "保存"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setDialogueLabelEditing(false)
+                    setDialogueLabelError("")
+                  }}
+                  disabled={dialogueLabelSaving}
+                >
+                  キャンセル
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <span className="font-semibold text-lg">{dialogueLabel}</span>
+              <Button variant="outline" size="sm" onClick={() => setDialogueLabelEditing(true)}>
+                変更
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Add Form */}
       {showForm && (
