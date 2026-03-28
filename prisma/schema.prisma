@@ -151,11 +151,11 @@ model AiUsageLog {
 model Billing {
   id                    String   @id @default(cuid())
   userId                String   @unique
-  plan                  String   @default("free") // free, standard, pro, enterprise
-  payjpCustomerId       String?  @unique
-  payjpSubscriptionId   String?  @unique
+  plan                  String   @default("free") // free, standard
+  squareOrderId         String?
+  squareSessionId       String?  @unique
   currentPeriodEnd      DateTime?
-  status                String   @default("active") // active, past_due, canceled, trialing
+  status                String   @default("active") // active, past_due, canceled
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 

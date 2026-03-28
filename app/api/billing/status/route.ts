@@ -14,11 +14,10 @@ export async function GET() {
       plan: true,
       status: true,
       currentPeriodEnd: true,
-      payjpSubscriptionId: true,
     },
   })
 
   return NextResponse.json(
-    billing ?? { plan: "free", status: "active", currentPeriodEnd: null, payjpSubscriptionId: null }
+    billing ?? { plan: "free", status: "active", currentPeriodEnd: null }
   )
 }

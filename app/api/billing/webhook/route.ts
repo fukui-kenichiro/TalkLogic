@@ -1,20 +1,33 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createHmac } from "crypto"
+import { createHmac, timingSafeEqual } from "crypto"
 import prisma from "@/lib/prisma"
 
-// PAY.JP Webhook署名検証
-function verifySignature(rawBody: string, signature: string, secret: string): boolean {
-  const hmac = createHmac("sha256", secret).update(rawBody, "utf8").digest("hex")
-  return hmac === signature
+// Square Webhook 署名検証
+// Square uses HMAC-SHA256 with the webhook signature key
+function verifySignature(
+  rawBody: string,
+  signature: string,
+  secret: string,
+  url: string
+): boolean {
+  // Square signature: HMAC-SHA256( webhookSignatureKey, url + body )
+  const hmac = createHmac("sha256", secret)
+    .update(url + rawBody)
+    .digest("base64")
+  try {
+    return timingSafeEqual(Buffer.from(hmac), Buffer.from(signature))
+  } catch {
+    return false
+  }
 }
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text()
-  const signature = req.headers.get("payjp-signature") ?? ""
-  const webhookSecret = process.env.PAYJP_WEBHOOK_SECRET ?? ""
+  const signature = req.headers.get("x-square-hmacsha256-signature") ?? ""
+  const webhookSecret = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY ?? ""
+  const webhookUrl = process.env.SQUARE_WEBHOOK_URL ?? req.url
 
-  // Webhook Secretが設定されている場合のみ署名検証
-  if (webhookSecret && !verifySignature(rawBody, signature, webhookSecret)) {
+  if (webhookSecret && !verifySignature(rawBody, signature, webhookSecret, webhookUrl)) {
     return NextResponse.json({ error: "署名が不正です" }, { status: 400 })
   }
 
@@ -28,57 +41,26 @@ export async function POST(req: NextRequest) {
   const obj = event.data?.object ?? {}
 
   switch (event.type) {
-    // サブスクリプション更新成功
-    case "subscription.renewed": {
-      const subscriptionId = obj.id as string
-      const periodEnd = obj.current_period_end as number | undefined
-      if (subscriptionId && periodEnd) {
-        await prisma.billing.updateMany({
-          where: { payjpSubscriptionId: subscriptionId },
-          data: {
-            status: "active",
-            currentPeriodEnd: new Date(periodEnd * 1000),
-          },
+    // 支払い完了（Payment Link 経由での決済確認バックアップ）
+    case "payment.completed": {
+      const orderId = (obj as { payment?: { order_id?: string } }).payment?.order_id
+      if (orderId) {
+        const billing = await prisma.billing.findFirst({
+          where: { squareOrderId: orderId },
         })
-      }
-      break
-    }
-
-    // サブスクリプション解約完了
-    case "subscription.canceled": {
-      const subscriptionId = obj.id as string
-      if (subscriptionId) {
-        await prisma.billing.updateMany({
-          where: { payjpSubscriptionId: subscriptionId },
-          data: {
-            status: "canceled",
-            plan: "free",
-          },
-        })
-      }
-      break
-    }
-
-    // 支払い失敗
-    case "charge.failed": {
-      const customerId = obj.customer as string | undefined
-      if (customerId) {
-        await prisma.billing.updateMany({
-          where: { payjpCustomerId: customerId },
-          data: { status: "past_due" },
-        })
-      }
-      break
-    }
-
-    // 支払い成功（past_due からの復帰）
-    case "charge.succeeded": {
-      const customerId = obj.customer as string | undefined
-      if (customerId) {
-        await prisma.billing.updateMany({
-          where: { payjpCustomerId: customerId, status: "past_due" },
-          data: { status: "active" },
-        })
+        if (billing && billing.plan !== "standard") {
+          const periodEnd = new Date()
+          periodEnd.setMonth(periodEnd.getMonth() + 1)
+          await prisma.billing.update({
+            where: { id: billing.id },
+            data: {
+              plan: "standard",
+              status: "active",
+              squareSessionId: null,
+              currentPeriodEnd: periodEnd,
+            },
+          })
+        }
       }
       break
     }
