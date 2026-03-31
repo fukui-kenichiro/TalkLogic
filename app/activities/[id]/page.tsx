@@ -10,7 +10,6 @@ import {
   Clock,
   Cloud,
   Users,
-  MessageCircle,
   MapPin,
   FileText,
   Pencil,
@@ -37,15 +36,16 @@ type Activity = {
   durationMinutes: number | null
   weather: string | null
   staffCount: number | null
-  dialogueCount: number
   memo: string | null
   activityResults: Array<{
     id: string
+    activityCount: number
     resultCount: number
     goal: {
       id: string
       outcomeName: string
       goalName: string
+      activityCountLabel: string
       colorCode: string
     }
   }>
@@ -59,14 +59,8 @@ export default function ActivityDetailPage() {
   const [activity, setActivity] = useState<Activity | null>(null)
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
-  const [dialogueLabel, setDialogueLabel] = useState("対話人数")
-
   useEffect(() => {
     fetchActivity()
-    fetch("/api/settings/dialogue-label")
-      .then((r) => r.json())
-      .then((d) => setDialogueLabel(d.label ?? "対話人数"))
-      .catch(() => null)
   }, [id])
 
   const fetchActivity = async () => {
@@ -191,11 +185,6 @@ export default function ActivityDetailPage() {
               value={`${activity.staffCount}人`}
             />
           )}
-          <InfoItem
-            icon={<MessageCircle className="h-4 w-4" />}
-            label={dialogueLabel}
-            value={`${activity.dialogueCount}人`}
-          />
         </CardContent>
       </Card>
 
@@ -203,13 +192,13 @@ export default function ActivityDetailPage() {
       {activity.activityResults.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">成果実績</CardTitle>
+            <CardTitle className="text-base">活動量・成果実績</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {activity.activityResults.map((r) => (
               <div
                 key={r.id}
-                className="flex flex-col gap-1 p-3 rounded-lg border"
+                className="flex flex-col gap-2 p-3 rounded-lg border"
                 style={{ borderColor: r.goal.colorCode + "60" }}
               >
                 <span
@@ -219,8 +208,14 @@ export default function ActivityDetailPage() {
                   {r.goal.goalName}
                 </span>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold">{r.resultCount}</span>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-xl font-bold">{r.activityCount}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {r.goal.activityCountLabel}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-xl font-bold">{r.resultCount}</span>
+                  <span className="text-xs text-muted-foreground">
                     {r.goal.outcomeName}
                   </span>
                 </div>

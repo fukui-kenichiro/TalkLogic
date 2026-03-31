@@ -3,29 +3,27 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, TrendingUp, TrendingDown, Activity, MessageCircle, Clock } from "lucide-react"
+import { Plus, TrendingUp, TrendingDown, Activity, Clock } from "lucide-react"
 import Link from "next/link"
 import { formatDate, formatTime } from "@/lib/utils"
 
 type DashboardData = {
   thisMonthStats: {
     activityCount: number
-    totalDialogues: number
     totalDuration: number
   }
   lastMonthStats: {
     activityCount: number
-    totalDialogues: number
     totalDuration: number
   }
   changes: {
     activityCount: number
-    totalDialogues: number
   }
   goalAchievements: Array<{
     goal: any
     thisMonth: number
     lastMonth: number
+    thisMonthActivityCount: number
     change: number
   }>
   recentActivities: Array<any>
@@ -34,14 +32,8 @@ type DashboardData = {
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [dialogueLabel, setDialogueLabel] = useState("対話人数")
-
   useEffect(() => {
     fetchDashboardData()
-    fetch("/api/settings/dialogue-label")
-      .then((r) => r.json())
-      .then((d) => setDialogueLabel(d.label ?? "対話人数"))
-      .catch(() => null)
   }, [])
 
   const fetchDashboardData = async () => {
@@ -137,12 +129,6 @@ export default function DashboardPage() {
           icon={Activity}
         />
         <StatCard
-          title={dialogueLabel}
-          value={`${data.thisMonthStats.totalDialogues}人`}
-          change={data.changes.totalDialogues}
-          icon={MessageCircle}
-        />
-        <StatCard
           title="活動時間"
           value={formatTime(data.thisMonthStats.totalDuration)}
           icon={Clock}
@@ -172,7 +158,15 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold">{achievement.thisMonth}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {achievement.goal.activityCountLabel}: {achievement.thisMonthActivityCount}
+                    </p>
+                    <p className="text-2xl font-bold">
+                      {achievement.thisMonth}
+                      <span className="text-sm font-normal text-muted-foreground ml-1">
+                        {achievement.goal.outcomeName}
+                      </span>
+                    </p>
                     {achievement.change !== 0 && (
                       <p
                         className={`text-sm flex items-center justify-end gap-1 ${

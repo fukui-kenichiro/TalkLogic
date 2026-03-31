@@ -13,10 +13,11 @@ const activitySchema = z.object({
   durationMinutes: z.number().int().optional(),
   weather: z.string().optional(),
   staffCount: z.number().int().optional(),
-  dialogueCount: z.number().int(),
+  dialogueCount: z.number().int().optional(),
   memo: z.string().optional(),
   results: z.array(z.object({
     goalId: z.string(),
+    activityCount: z.number().int().optional(),
     resultCount: z.number().int(),
   })).optional(),
 })
@@ -130,6 +131,7 @@ export async function POST(req: NextRequest) {
           ? {
               create: validated.results.map((result) => ({
                 goalId: result.goalId,
+                activityCount: result.activityCount ?? 0,
                 resultCount: result.resultCount,
               })),
             }

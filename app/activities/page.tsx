@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, MapPin, Calendar, Users } from "lucide-react"
+import { Plus, MapPin, Calendar, Clock } from "lucide-react"
 import Link from "next/link"
 import { formatDate, formatTime } from "@/lib/utils"
 
@@ -90,17 +90,12 @@ export default function ActivitiesPage() {
                     {formatDate(activity.activityDate)}
                   </div>
 
-                  <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{activity.dialogueCount}人</span>
+                  {activity.durationMinutes && (
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      {formatTime(activity.durationMinutes)}
                     </div>
-                    {activity.durationMinutes && (
-                      <div className="text-muted-foreground">
-                        {formatTime(activity.durationMinutes)}
-                      </div>
-                    )}
-                  </div>
+                  )}
 
                   {activity.weather && (
                     <div className="text-sm">

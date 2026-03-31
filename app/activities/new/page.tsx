@@ -19,6 +19,8 @@ type ActivityUsage = {
   isPaid: boolean
 }
 
+type GoalEntry = { activityCount: string; resultCount: string }
+
 export default function NewActivityPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -35,22 +37,16 @@ export default function NewActivityPage() {
     durationMinutes: "",
     weather: "",
     staffCount: "",
-    dialogueCount: "",
     memo: "",
   })
 
-  const [results, setResults] = useState<Record<string, string>>({})
-  const [dialogueLabel, setDialogueLabel] = useState("対話人数")
+  const [results, setResults] = useState<Record<string, GoalEntry>>({})
 
   useEffect(() => {
     fetchGoals()
     fetch("/api/activities/usage")
       .then((r) => r.json())
       .then(setUsage)
-      .catch(() => null)
-    fetch("/api/settings/dialogue-label")
-      .then((r) => r.json())
-      .then((d) => setDialogueLabel(d.label ?? "対話人数"))
       .catch(() => null)
   }, [])
 
@@ -97,6 +93,13 @@ export default function NewActivityPage() {
     )
   }
 
+  const updateResult = (goalId: string, field: keyof GoalEntry, value: string) => {
+    setResults((prev) => {
+      const current: GoalEntry = prev[goalId] ?? { activityCount: "", resultCount: "" }
+      return { ...prev, [goalId]: { ...current, [field]: value } }
+    })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -104,10 +107,14 @@ export default function NewActivityPage() {
 
     try {
       const activityResults = goals
-        .filter((goal) => results[goal.id] && parseInt(results[goal.id]) > 0)
+        .filter((goal) => {
+          const entry = results[goal.id]
+          return entry && (parseInt(entry.activityCount || "0") > 0 || parseInt(entry.resultCount || "0") > 0)
+        })
         .map((goal) => ({
           goalId: goal.id,
-          resultCount: parseInt(results[goal.id]),
+          activityCount: parseInt(results[goal.id]?.activityCount || "0"),
+          resultCount: parseInt(results[goal.id]?.resultCount || "0"),
         }))
 
       const payload = {
@@ -118,7 +125,6 @@ export default function NewActivityPage() {
         durationMinutes: formData.durationMinutes ? parseInt(formData.durationMinutes) : undefined,
         weather: formData.weather || undefined,
         staffCount: formData.staffCount ? parseInt(formData.staffCount) : undefined,
-        dialogueCount: parseInt(formData.dialogueCount),
         memo: formData.memo || undefined,
         results: activityResults.length > 0 ? activityResults : undefined,
       }
@@ -296,44 +302,50 @@ export default function NewActivityPage() {
               />
             </div>
 
-            {/* Dialogue Count */}
-            <div className="space-y-2">
-              <Label htmlFor="dialogueCount">{dialogueLabel} *</Label>
-              <Input
-                id="dialogueCount"
-                type="number"
-                min="0"
-                required
-                placeholder="例: 15"
-                value={formData.dialogueCount}
-                onChange={(e) =>
-                  setFormData({ ...formData, dialogueCount: e.target.value })
-                }
-              />
-            </div>
-
             {/* Goal Results */}
             {goals.length > 0 && (
               <div className="space-y-4 pt-4 border-t">
-                <h3 className="font-semibold">成果実績</h3>
+                <h3 className="font-semibold">活動量・成果実績</h3>
                 {goals.map((goal) => (
-                  <div key={goal.id} className="space-y-2">
-                    <Label htmlFor={`goal-${goal.id}`}>
-                      {goal.outcomeName}
-                      <span className="text-sm text-muted-foreground ml-2">
-                        ({goal.goalName})
-                      </span>
-                    </Label>
-                    <Input
-                      id={`goal-${goal.id}`}
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      value={results[goal.id] || ""}
-                      onChange={(e) =>
-                        setResults({ ...results, [goal.id]: e.target.value })
-                      }
-                    />
+                  <div
+                    key={goal.id}
+                    className="space-y-3 p-4 rounded-lg border"
+                    style={{ borderColor: goal.colorCode + "60" }}
+                  >
+                    <p
+                      className="text-sm font-medium"
+                      style={{ color: goal.colorCode }}
+                    >
+                      {goal.goalName}
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label htmlFor={`activity-${goal.id}`} className="text-xs">
+                          {goal.activityCountLabel}
+                        </Label>
+                        <Input
+                          id={`activity-${goal.id}`}
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          value={results[goal.id]?.activityCount || ""}
+                          onChange={(e) => updateResult(goal.id, "activityCount", e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor={`result-${goal.id}`} className="text-xs">
+                          {goal.outcomeName}
+                        </Label>
+                        <Input
+                          id={`result-${goal.id}`}
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          value={results[goal.id]?.resultCount || ""}
+                          onChange={(e) => updateResult(goal.id, "resultCount", e.target.value)}
+                        />
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

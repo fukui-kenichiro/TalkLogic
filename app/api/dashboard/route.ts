@@ -51,13 +51,11 @@ export async function GET(req: NextRequest) {
     // Calculate stats
     const thisMonthStats = {
       activityCount: thisMonthActivities.length,
-      totalDialogues: thisMonthActivities.reduce((sum, a) => sum + a.dialogueCount, 0),
       totalDuration: thisMonthActivities.reduce((sum, a) => sum + (a.durationMinutes || 0), 0),
     }
 
     const lastMonthStats = {
       activityCount: lastMonthActivities.length,
-      totalDialogues: lastMonthActivities.reduce((sum, a) => sum + a.dialogueCount, 0),
       totalDuration: lastMonthActivities.reduce((sum, a) => sum + (a.durationMinutes || 0), 0),
     }
 
@@ -78,11 +76,13 @@ export async function GET(req: NextRequest) {
 
       const thisMonthTotal = thisMonthResults.reduce((sum, r) => sum + r.resultCount, 0)
       const lastMonthTotal = lastMonthResults.reduce((sum, r) => sum + r.resultCount, 0)
+      const thisMonthActivityTotal = thisMonthResults.reduce((sum, r) => sum + r.activityCount, 0)
 
       return {
         goal,
         thisMonth: thisMonthTotal,
         lastMonth: lastMonthTotal,
+        thisMonthActivityCount: thisMonthActivityTotal,
         change: lastMonthTotal > 0 ? ((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100 : 0,
       }
     })
@@ -113,12 +113,6 @@ export async function GET(req: NextRequest) {
           lastMonthStats.activityCount > 0
             ? ((thisMonthStats.activityCount - lastMonthStats.activityCount) /
                 lastMonthStats.activityCount) *
-              100
-            : 0,
-        totalDialogues:
-          lastMonthStats.totalDialogues > 0
-            ? ((thisMonthStats.totalDialogues - lastMonthStats.totalDialogues) /
-                lastMonthStats.totalDialogues) *
               100
             : 0,
       },

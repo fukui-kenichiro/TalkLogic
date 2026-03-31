@@ -17,21 +17,13 @@ export default function GoalsPage() {
 
   const [formData, setFormData] = useState({
     goalName: "",
+    activityCountLabel: "",
     outcomeName: "",
     colorCode: "#3b82f6",
   })
 
-  const [dialogueLabel, setDialogueLabel] = useState("対話人数")
-  const [dialogueLabelEditing, setDialogueLabelEditing] = useState(false)
-  const [dialogueLabelSaving, setDialogueLabelSaving] = useState(false)
-  const [dialogueLabelError, setDialogueLabelError] = useState("")
-
   useEffect(() => {
     fetchGoals()
-    fetch("/api/settings/dialogue-label")
-      .then((r) => r.json())
-      .then((d) => setDialogueLabel(d.label ?? "対話人数"))
-      .catch(() => null)
   }, [])
 
   const fetchGoals = async () => {
@@ -71,6 +63,7 @@ export default function GoalsPage() {
 
       setFormData({
         goalName: "",
+        activityCountLabel: "",
         outcomeName: "",
         colorCode: "#3b82f6",
       })
@@ -80,32 +73,6 @@ export default function GoalsPage() {
       setError("保存処理中にエラーが発生しました")
     } finally {
       setSaving(false)
-    }
-  }
-
-  const handleDialogueLabelSave = async () => {
-    if (!dialogueLabel.trim()) {
-      setDialogueLabelError("ラベル名を入力してください")
-      return
-    }
-    setDialogueLabelSaving(true)
-    setDialogueLabelError("")
-    try {
-      const res = await fetch("/api/settings/dialogue-label", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label: dialogueLabel.trim() }),
-      })
-      if (!res.ok) {
-        const data = await res.json()
-        setDialogueLabelError(data.error || "保存に失敗しました")
-        return
-      }
-      setDialogueLabelEditing(false)
-    } catch {
-      setDialogueLabelError("保存処理中にエラーが発生しました")
-    } finally {
-      setDialogueLabelSaving(false)
     }
   }
 
@@ -156,58 +123,6 @@ export default function GoalsPage() {
         )}
       </div>
 
-      {/* Dialogue Count Label Setting */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">活動量カウント名</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            「新規活動記録」の必須項目（デフォルト: 対話人数）の名前を変更できます。
-          </p>
-          {dialogueLabelEditing ? (
-            <div className="space-y-2">
-              {dialogueLabelError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded text-sm">
-                  {dialogueLabelError}
-                </div>
-              )}
-              <div className="flex gap-2">
-                <Input
-                  value={dialogueLabel}
-                  onChange={(e) => setDialogueLabel(e.target.value)}
-                  maxLength={20}
-                  placeholder="例: 用意したチラシ枚数"
-                  className="flex-1"
-                />
-                <Button onClick={handleDialogueLabelSave} disabled={dialogueLabelSaving}>
-                  {dialogueLabelSaving ? (
-                    <><Loader2 className="h-4 w-4 mr-1 animate-spin" />保存中...</>
-                  ) : "保存"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setDialogueLabelEditing(false)
-                    setDialogueLabelError("")
-                  }}
-                  disabled={dialogueLabelSaving}
-                >
-                  キャンセル
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <span className="font-semibold text-lg">{dialogueLabel}</span>
-              <Button variant="outline" size="sm" onClick={() => setDialogueLabelEditing(true)}>
-                変更
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Add Form */}
       {showForm && (
         <Card>
@@ -239,11 +154,28 @@ export default function GoalsPage() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="activityCountLabel">活動量の名前 *</Label>
+                <Input
+                  id="activityCountLabel"
+                  required
+                  placeholder="例: 対話人数、用意したチラシ枚数"
+                  maxLength={20}
+                  value={formData.activityCountLabel}
+                  onChange={(e) =>
+                    setFormData({ ...formData, activityCountLabel: e.target.value })
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  活動量として記録する項目名（例: 対話人数、サンプリング数）
+                </p>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="outcomeName">成果名 *</Label>
                 <Input
                   id="outcomeName"
                   required
-                  placeholder="例: 加盟数"
+                  placeholder="例: 加盟数、配布数"
                   value={formData.outcomeName}
                   onChange={(e) =>
                     setFormData({ ...formData, outcomeName: e.target.value })
@@ -328,7 +260,11 @@ export default function GoalsPage() {
                   />
                   <div>
                     <p className="font-semibold text-lg">{goal.outcomeName}</p>
-                    <p className="text-sm text-muted-foreground">{goal.goalName}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {goal.goalName}
+                      <span className="mx-1">·</span>
+                      活動量: {goal.activityCountLabel}
+                    </p>
                   </div>
                 </div>
                 <Button
@@ -350,10 +286,10 @@ export default function GoalsPage() {
         <CardContent className="pt-6">
           <h3 className="font-semibold mb-2">💡 成果指標について</h3>
           <ul className="text-sm space-y-1 text-muted-foreground">
-            <li>• 活動の目的に合わせて自由に指標を定義できます</li>
-            <li>• 政治活動: 加入数、資料配布数、署名数など</li>
-            <li>• 営業活動: 契約数、アポ獲得数、名刺交換数など</li>
-            <li>• NPO活動: 会員獲得数、寄付者数、参加者数など</li>
+            <li>• 活動量と成果をセットで定義できます</li>
+            <li>• 例: 活動量「対話人数」→ 成果「加盟数」</li>
+            <li>• 例: 活動量「用意したチラシ枚数」→ 成果「配布数」</li>
+            <li>• 例: 活動量「サンプリング数」→ 成果「アポ獲得数」</li>
           </ul>
         </CardContent>
       </Card>

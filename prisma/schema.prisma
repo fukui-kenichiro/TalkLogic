@@ -19,7 +19,6 @@ model User {
   nickname              String?
   onboardingCompleted   Boolean   @default(false)
   preferredAiModel      String    @default("claude-haiku")
-  dialogueCountLabel    String    @default("対話人数")
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
@@ -84,7 +83,7 @@ model Activity {
   durationMinutes Int?
   weather         String?
   staffCount      Int?
-  dialogueCount   Int
+  dialogueCount   Int?
   memo            String?   @db.Text
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -100,9 +99,10 @@ model Activity {
 model Goal {
   id              String    @id @default(cuid())
   userId          String
-  goalName        String
-  outcomeName     String
-  isPrimary       Boolean   @default(false)
+  goalName            String
+  outcomeName         String
+  activityCountLabel  String    @default("対話人数")
+  isPrimary           Boolean   @default(false)
   displayOrder    Int       @default(0)
   colorCode       String    @default("#3b82f6")
   createdAt       DateTime  @default(now())
@@ -117,10 +117,11 @@ model Goal {
 
 // 活動成果実績（中間テーブル）
 model ActivityResult {
-  id          String   @id @default(cuid())
-  activityId  String
-  goalId      String
-  resultCount Int      @default(0)
+  id            String   @id @default(cuid())
+  activityId    String
+  goalId        String
+  activityCount Int      @default(0)
+  resultCount   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

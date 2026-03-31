@@ -3,26 +3,6 @@ import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { startOfMonth, endOfMonth, format, eachDayOfInterval } from "date-fns"
 
-type LocationEntry = {
-  locationName: string
-  latitude: number | null
-  longitude: number | null
-  count: number
-  dialogueCount: number
-}
-
-type WeatherEntry = {
-  weather: string
-  count: number
-  dialogueCount: number
-}
-
-type DayOfWeekEntry = {
-  dayOfWeek: string
-  count: number
-  dialogueCount: number
-}
-
 export async function GET(req: NextRequest) {
   try {
     const session = await auth()
@@ -80,6 +60,8 @@ export async function GET(req: NextRequest) {
         return {
           goalId: goal.id,
           goalName: goal.outcomeName,
+          activityCountLabel: goal.activityCountLabel,
+          activityCount: results.reduce((sum, r) => sum + r.activityCount, 0),
           count: results.reduce((sum, r) => sum + r.resultCount, 0),
         }
       })
@@ -87,62 +69,49 @@ export async function GET(req: NextRequest) {
       return {
         date: format(day, "yyyy-MM-dd"),
         activityCount: dayActivities.length,
-        dialogueCount: dayActivities.reduce((sum, a) => sum + a.dialogueCount, 0),
         goals: goalData,
       }
     })
 
     // Location aggregation
-    const locationData = activities.reduce((acc: LocationEntry[], activity) => {
+    const locationData = activities.reduce((acc: { locationName: string; latitude: number | null; longitude: number | null; count: number }[], activity) => {
       const existing = acc.find((l) => l.locationName === activity.locationName)
       if (existing) {
         existing.count++
-        existing.dialogueCount += activity.dialogueCount
       } else {
         acc.push({
           locationName: activity.locationName,
           latitude: activity.latitude,
           longitude: activity.longitude,
           count: 1,
-          dialogueCount: activity.dialogueCount,
         })
       }
       return acc
     }, [])
 
     // Weather analysis
-    const weatherData = activities.reduce((acc: WeatherEntry[], activity) => {
+    const weatherData = activities.reduce((acc: { weather: string; count: number }[], activity) => {
       if (!activity.weather) return acc
       const existing = acc.find((w) => w.weather === activity.weather)
       if (existing) {
         existing.count++
-        existing.dialogueCount += activity.dialogueCount
       } else {
-        acc.push({
-          weather: activity.weather,
-          count: 1,
-          dialogueCount: activity.dialogueCount,
-        })
+        acc.push({ weather: activity.weather, count: 1 })
       }
       return acc
     }, [])
 
     // Day of week analysis
-    const dayOfWeekData = activities.reduce((acc: DayOfWeekEntry[], activity) => {
+    const dayOfWeekData = activities.reduce((acc: { dayOfWeek: string; count: number }[], activity) => {
       const dayOfWeek = new Date(activity.activityDate).getDay()
       const dayNames = ["日", "月", "火", "水", "木", "金", "土"]
       const dayName = dayNames[dayOfWeek]
-      
+
       const existing = acc.find((d) => d.dayOfWeek === dayName)
       if (existing) {
         existing.count++
-        existing.dialogueCount += activity.dialogueCount
       } else {
-        acc.push({
-          dayOfWeek: dayName,
-          count: 1,
-          dialogueCount: activity.dialogueCount,
-        })
+        acc.push({ dayOfWeek: dayName, count: 1 })
       }
       return acc
     }, [])
@@ -150,18 +119,15 @@ export async function GET(req: NextRequest) {
     // Summary stats
     const summary = {
       totalActivities: activities.length,
-      totalDialogues: activities.reduce((sum, a) => sum + a.dialogueCount, 0),
       totalDuration: activities.reduce((sum, a) => sum + (a.durationMinutes || 0), 0),
-      averageDialogues:
-        activities.length > 0
-          ? activities.reduce((sum, a) => sum + a.dialogueCount, 0) / activities.length
-          : 0,
       goalAchievements: goals.map((goal) => {
         const results = activities.flatMap((a) =>
           a.activityResults.filter((r) => r.goalId === goal.id)
         )
         return {
           goal: goal.outcomeName,
+          activityCountLabel: goal.activityCountLabel,
+          totalActivityCount: results.reduce((sum, r) => sum + r.activityCount, 0),
           total: results.reduce((sum, r) => sum + r.resultCount, 0),
           colorCode: goal.colorCode,
         }

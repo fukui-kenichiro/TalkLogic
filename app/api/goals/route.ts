@@ -6,6 +6,7 @@ import { z } from "zod"
 const goalSchema = z.object({
   goalName: z.string().min(1).max(100),
   outcomeName: z.string().min(1).max(100),
+  activityCountLabel: z.string().min(1).max(20).optional(),
   isPrimary: z.boolean().optional(),
   displayOrder: z.number().int().optional(),
   colorCode: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
         userId: session.user.id,
         goalName: validated.goalName,
         outcomeName: validated.outcomeName,
+        activityCountLabel: validated.activityCountLabel || "対話人数",
         isPrimary: validated.isPrimary || false,
         displayOrder: validated.displayOrder ?? (maxOrder._max.displayOrder ?? 0) + 1,
         colorCode: validated.colorCode || "#3b82f6",
