@@ -105,6 +105,8 @@ model Goal {
   isPrimary           Boolean   @default(false)
   displayOrder    Int       @default(0)
   colorCode       String    @default("#3b82f6")
+  monthlyTarget   Int?
+  annualTarget    Int?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

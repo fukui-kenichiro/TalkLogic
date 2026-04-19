@@ -20,6 +20,8 @@ export default function GoalsPage() {
     activityCountLabel: "",
     outcomeName: "",
     colorCode: "#3b82f6",
+    monthlyTarget: "",
+    annualTarget: "",
   })
 
   useEffect(() => {
@@ -46,12 +48,18 @@ export default function GoalsPage() {
     setError("")
 
     try {
+      const payload = {
+        ...formData,
+        monthlyTarget: formData.monthlyTarget !== "" ? parseInt(formData.monthlyTarget, 10) : null,
+        annualTarget: formData.annualTarget !== "" ? parseInt(formData.annualTarget, 10) : null,
+      }
+
       const res = await fetch("/api/goals", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       })
 
       if (!res.ok) {
@@ -66,6 +74,8 @@ export default function GoalsPage() {
         activityCountLabel: "",
         outcomeName: "",
         colorCode: "#3b82f6",
+        monthlyTarget: "",
+        annualTarget: "",
       })
       setShowForm(false)
       fetchGoals()
@@ -186,6 +196,41 @@ export default function GoalsPage() {
                 </p>
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="monthlyTarget">月次目標（任意）</Label>
+                  <Input
+                    id="monthlyTarget"
+                    type="number"
+                    min={1}
+                    placeholder="例: 10"
+                    value={formData.monthlyTarget}
+                    onChange={(e) =>
+                      setFormData({ ...formData, monthlyTarget: e.target.value })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    1ヶ月あたりの目標数値
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="annualTarget">年間累計目標（任意）</Label>
+                  <Input
+                    id="annualTarget"
+                    type="number"
+                    min={1}
+                    placeholder="例: 120"
+                    value={formData.annualTarget}
+                    onChange={(e) =>
+                      setFormData({ ...formData, annualTarget: e.target.value })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    年間累計の目標数値
+                  </p>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="colorCode">カラーコード</Label>
                 <div className="flex gap-2 items-center">
@@ -265,6 +310,19 @@ export default function GoalsPage() {
                       <span className="mx-1">·</span>
                       活動量: {goal.activityCountLabel}
                     </p>
+                    {(goal.monthlyTarget != null || goal.annualTarget != null) && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {goal.monthlyTarget != null && (
+                          <span>月次目標: {goal.monthlyTarget.toLocaleString()}</span>
+                        )}
+                        {goal.monthlyTarget != null && goal.annualTarget != null && (
+                          <span className="mx-1">·</span>
+                        )}
+                        {goal.annualTarget != null && (
+                          <span>年間累計目標: {goal.annualTarget.toLocaleString()}</span>
+                        )}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <Button

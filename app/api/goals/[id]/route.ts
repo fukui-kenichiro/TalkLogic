@@ -9,6 +9,8 @@ const goalSchema = z.object({
   isPrimary: z.boolean().optional(),
   displayOrder: z.number().int().optional(),
   colorCode: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  monthlyTarget: z.number().int().positive().nullable().optional(),
+  annualTarget: z.number().int().positive().nullable().optional(),
 })
 
 type RouteParams = {
@@ -49,6 +51,8 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
         isPrimary: validated.isPrimary,
         displayOrder: validated.displayOrder,
         colorCode: validated.colorCode,
+        monthlyTarget: validated.monthlyTarget ?? null,
+        annualTarget: validated.annualTarget ?? null,
       },
     })
 

@@ -10,6 +10,8 @@ const goalSchema = z.object({
   isPrimary: z.boolean().optional(),
   displayOrder: z.number().int().optional(),
   colorCode: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  monthlyTarget: z.number().int().positive().nullable().optional(),
+  annualTarget: z.number().int().positive().nullable().optional(),
 })
 
 // GET /api/goals
@@ -65,6 +67,8 @@ export async function POST(req: NextRequest) {
         isPrimary: validated.isPrimary || false,
         displayOrder: validated.displayOrder ?? (maxOrder._max.displayOrder ?? 0) + 1,
         colorCode: validated.colorCode || "#3b82f6",
+        monthlyTarget: validated.monthlyTarget ?? null,
+        annualTarget: validated.annualTarget ?? null,
       },
     })
 
