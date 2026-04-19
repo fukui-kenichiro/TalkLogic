@@ -6,25 +6,40 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, Trash2, Loader2 } from "lucide-react"
+import { Plus, Trash2, Loader2, Pencil } from "lucide-react"
 import type { Goal } from "@prisma/client"
+
+const EMPTY_FORM = {
+  goalName: "",
+  activityCountLabel: "",
+  outcomeName: "",
+  colorCode: "#3b82f6",
+  monthlyTarget: "",
+  annualTarget: "",
+  qualitativeTarget: "",
+}
+
+function goalToFormData(goal: Goal) {
+  return {
+    goalName: goal.goalName,
+    activityCountLabel: goal.activityCountLabel,
+    outcomeName: goal.outcomeName,
+    colorCode: goal.colorCode,
+    monthlyTarget: goal.monthlyTarget != null ? String(goal.monthlyTarget) : "",
+    annualTarget: goal.annualTarget != null ? String(goal.annualTarget) : "",
+    qualitativeTarget: goal.qualitativeTarget ?? "",
+  }
+}
 
 export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null)
   const [error, setError] = useState("")
 
-  const [formData, setFormData] = useState({
-    goalName: "",
-    activityCountLabel: "",
-    outcomeName: "",
-    colorCode: "#3b82f6",
-    monthlyTarget: "",
-    annualTarget: "",
-    qualitativeTarget: "",
-  })
+  const [formData, setFormData] = useState({ ...EMPTY_FORM })
 
   useEffect(() => {
     fetchGoals()
@@ -44,26 +59,49 @@ export default function GoalsPage() {
     }
   }
 
+  const openNewForm = () => {
+    setEditingGoalId(null)
+    setFormData({ ...EMPTY_FORM })
+    setError("")
+    setShowForm(true)
+  }
+
+  const openEditForm = (goal: Goal) => {
+    setEditingGoalId(goal.id)
+    setFormData(goalToFormData(goal))
+    setError("")
+    setShowForm(true)
+  }
+
+  const closeForm = () => {
+    setShowForm(false)
+    setEditingGoalId(null)
+    setFormData({ ...EMPTY_FORM })
+    setError("")
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
     setError("")
 
-    try {
-      const payload = {
-        ...formData,
-        monthlyTarget: formData.monthlyTarget !== "" ? parseInt(formData.monthlyTarget, 10) : null,
-        annualTarget: formData.annualTarget !== "" ? parseInt(formData.annualTarget, 10) : null,
-        qualitativeTarget: formData.qualitativeTarget.trim() !== "" ? formData.qualitativeTarget.trim() : null,
-      }
+    const payload = {
+      ...formData,
+      monthlyTarget: formData.monthlyTarget !== "" ? parseInt(formData.monthlyTarget, 10) : null,
+      annualTarget: formData.annualTarget !== "" ? parseInt(formData.annualTarget, 10) : null,
+      qualitativeTarget: formData.qualitativeTarget.trim() !== "" ? formData.qualitativeTarget.trim() : null,
+    }
 
-      const res = await fetch("/api/goals", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      })
+    try {
+      const isEditing = editingGoalId !== null
+      const res = await fetch(
+        isEditing ? `/api/goals/${editingGoalId}` : "/api/goals",
+        {
+          method: isEditing ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      )
 
       if (!res.ok) {
         const data = await res.json()
@@ -72,16 +110,7 @@ export default function GoalsPage() {
         return
       }
 
-      setFormData({
-        goalName: "",
-        activityCountLabel: "",
-        outcomeName: "",
-        colorCode: "#3b82f6",
-        monthlyTarget: "",
-        annualTarget: "",
-        qualitativeTarget: "",
-      })
-      setShowForm(false)
+      closeForm()
       fetchGoals()
     } catch (err) {
       setError("保存処理中にエラーが発生しました")
@@ -119,6 +148,8 @@ export default function GoalsPage() {
     )
   }
 
+  const isEditing = editingGoalId !== null
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
@@ -130,18 +161,18 @@ export default function GoalsPage() {
           </p>
         </div>
         {!showForm && (
-          <Button onClick={() => setShowForm(true)} className="gap-2">
+          <Button onClick={openNewForm} className="gap-2">
             <Plus className="h-4 w-4" />
             新規追加
           </Button>
         )}
       </div>
 
-      {/* Add Form */}
+      {/* Add / Edit Form */}
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle>新しい成果指標</CardTitle>
+            <CardTitle>{isEditing ? "成果指標を編集" : "新しい成果指標"}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -181,6 +212,9 @@ export default function GoalsPage() {
                 />
                 <p className="text-xs text-muted-foreground">
                   活動量として記録する項目名（例: 対話人数、サンプリング数）
+                  {isEditing && (
+                    <span className="ml-1 text-amber-600">※ 変更すると過去の記録の表示名も変わります</span>
+                  )}
                 </p>
               </div>
 
@@ -282,6 +316,8 @@ export default function GoalsPage() {
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       保存中...
                     </>
+                  ) : isEditing ? (
+                    "更新する"
                   ) : (
                     "保存する"
                   )}
@@ -289,7 +325,7 @@ export default function GoalsPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setShowForm(false)}
+                  onClick={closeForm}
                   disabled={saving}
                 >
                   キャンセル
@@ -308,7 +344,7 @@ export default function GoalsPage() {
             <p className="text-muted-foreground mb-6">
               最初の成果指標を追加して、活動の成果を記録しましょう
             </p>
-            <Button onClick={() => setShowForm(true)}>
+            <Button onClick={openNewForm}>
               <Plus className="h-4 w-4 mr-2" />
               成果指標を追加
             </Button>
@@ -317,7 +353,7 @@ export default function GoalsPage() {
       ) : (
         <div className="space-y-3">
           {goals.map((goal) => (
-            <Card key={goal.id}>
+            <Card key={goal.id} className={editingGoalId === goal.id ? "ring-2 ring-primary" : ""}>
               <CardContent className="flex items-center justify-between p-6">
                 <div className="flex items-center gap-4">
                   <div
@@ -351,14 +387,26 @@ export default function GoalsPage() {
                     )}
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(goal.id)}
-                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openEditForm(goal)}
+                    disabled={showForm}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(goal.id)}
+                    disabled={showForm}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
