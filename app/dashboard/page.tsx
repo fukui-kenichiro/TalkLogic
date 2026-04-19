@@ -245,21 +245,21 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="space-y-3">
         <div>
           <h1 className="text-3xl font-bold">ダッシュボード</h1>
           <p className="text-muted-foreground mt-1">今月の活動状況</p>
         </div>
         <div className="flex gap-2">
           <Link href="/activities/new?mode=plan">
-            <Button size="lg" variant="outline" className="gap-2">
-              <CalendarDays className="h-5 w-5" />
+            <Button variant="outline" className="gap-2">
+              <CalendarDays className="h-4 w-4" />
               予定を登録
             </Button>
           </Link>
           <Link href="/activities/new">
-            <Button size="lg" className="gap-2">
-              <Plus className="h-5 w-5" />
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
               新規記録
             </Button>
           </Link>
