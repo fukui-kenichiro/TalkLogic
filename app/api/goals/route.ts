@@ -12,6 +12,7 @@ const goalSchema = z.object({
   colorCode: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   monthlyTarget: z.number().int().positive().nullable().optional(),
   annualTarget: z.number().int().positive().nullable().optional(),
+  qualitativeTarget: z.string().max(500).nullable().optional(),
 })
 
 // GET /api/goals
@@ -69,6 +70,7 @@ export async function POST(req: NextRequest) {
         colorCode: validated.colorCode || "#3b82f6",
         monthlyTarget: validated.monthlyTarget ?? null,
         annualTarget: validated.annualTarget ?? null,
+        qualitativeTarget: validated.qualitativeTarget ?? null,
       },
     })
 

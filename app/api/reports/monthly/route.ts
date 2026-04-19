@@ -130,6 +130,9 @@ export async function GET(req: NextRequest) {
           totalActivityCount: results.reduce((sum, r) => sum + r.activityCount, 0),
           total: results.reduce((sum, r) => sum + r.resultCount, 0),
           colorCode: goal.colorCode,
+          monthlyTarget: goal.monthlyTarget,
+          annualTarget: goal.annualTarget,
+          qualitativeTarget: goal.qualitativeTarget,
         }
       }),
     }

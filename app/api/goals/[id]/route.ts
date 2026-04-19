@@ -11,6 +11,7 @@ const goalSchema = z.object({
   colorCode: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   monthlyTarget: z.number().int().positive().nullable().optional(),
   annualTarget: z.number().int().positive().nullable().optional(),
+  qualitativeTarget: z.string().max(500).nullable().optional(),
 })
 
 type RouteParams = {
@@ -53,6 +54,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
         colorCode: validated.colorCode,
         monthlyTarget: validated.monthlyTarget ?? null,
         annualTarget: validated.annualTarget ?? null,
+        qualitativeTarget: validated.qualitativeTarget ?? null,
       },
     })
 

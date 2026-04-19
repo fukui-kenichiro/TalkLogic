@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Plus, Trash2, Loader2 } from "lucide-react"
 import type { Goal } from "@prisma/client"
 
@@ -22,6 +23,7 @@ export default function GoalsPage() {
     colorCode: "#3b82f6",
     monthlyTarget: "",
     annualTarget: "",
+    qualitativeTarget: "",
   })
 
   useEffect(() => {
@@ -52,6 +54,7 @@ export default function GoalsPage() {
         ...formData,
         monthlyTarget: formData.monthlyTarget !== "" ? parseInt(formData.monthlyTarget, 10) : null,
         annualTarget: formData.annualTarget !== "" ? parseInt(formData.annualTarget, 10) : null,
+        qualitativeTarget: formData.qualitativeTarget.trim() !== "" ? formData.qualitativeTarget.trim() : null,
       }
 
       const res = await fetch("/api/goals", {
@@ -76,6 +79,7 @@ export default function GoalsPage() {
         colorCode: "#3b82f6",
         monthlyTarget: "",
         annualTarget: "",
+        qualitativeTarget: "",
       })
       setShowForm(false)
       fetchGoals()
@@ -232,6 +236,23 @@ export default function GoalsPage() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="qualitativeTarget">定性目標（任意）</Label>
+                <Textarea
+                  id="qualitativeTarget"
+                  placeholder="例: 新エリアへの展開と対話の質向上。初回接触から関係構築まで丁寧にフォローする。"
+                  rows={3}
+                  maxLength={500}
+                  value={formData.qualitativeTarget}
+                  onChange={(e) =>
+                    setFormData({ ...formData, qualitativeTarget: e.target.value })
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  数値では表せない目標や方針（月次レポートのAI分析に反映されます）
+                </p>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="colorCode">カラーコード</Label>
                 <div className="flex gap-2 items-center">
                   <Input
@@ -321,6 +342,11 @@ export default function GoalsPage() {
                         {goal.annualTarget != null && (
                           <span>年間累計目標: {goal.annualTarget.toLocaleString()}</span>
                         )}
+                      </p>
+                    )}
+                    {goal.qualitativeTarget && (
+                      <p className="text-xs text-muted-foreground mt-1 max-w-md truncate">
+                        定性目標: {goal.qualitativeTarget}
                       </p>
                     )}
                   </div>
