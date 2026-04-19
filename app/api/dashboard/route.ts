@@ -105,6 +105,24 @@ export async function GET(req: NextRequest) {
       take: 5,
     })
 
+    // Upcoming plans: future-dated activities with all-zero/no results
+    const rawUpcoming = await prisma.activity.findMany({
+      where: {
+        userId: session.user.id,
+        activityDate: { gt: now },
+      },
+      include: {
+        activityResults: true,
+      },
+      orderBy: { activityDate: "asc" },
+      take: 10,
+    })
+    const upcomingPlans = rawUpcoming.filter(
+      (a) =>
+        a.activityResults.length === 0 ||
+        a.activityResults.every((r) => r.resultCount === 0)
+    )
+
     return NextResponse.json({
       thisMonthStats,
       lastMonthStats,
@@ -118,6 +136,7 @@ export async function GET(req: NextRequest) {
       },
       goalAchievements,
       recentActivities,
+      upcomingPlans,
     })
   } catch (error) {
     console.error("Dashboard GET error:", error)
